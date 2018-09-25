@@ -27,8 +27,11 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.codingwithmitch.googlemaps2018.R;
+import com.codingwithmitch.googlemaps2018.UserClient;
 import com.codingwithmitch.googlemaps2018.adapters.ChatroomRecyclerAdapter;
 import com.codingwithmitch.googlemaps2018.models.Chatroom;
+import com.codingwithmitch.googlemaps2018.models.User;
+import com.codingwithmitch.googlemaps2018.models.UserLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -38,6 +41,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -76,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements
     private FirebaseFirestore mDb;
     private boolean mLocationPermissionGranted = false;
     private FusedLocationProviderClient fusedLocationProviderClient;
+    private UserLocation userLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +99,43 @@ public class MainActivity extends AppCompatActivity implements
         initChatroomRecyclerView();
     }
 
+    public void getUserDetails(){
+        if (userLocation == null){
+            userLocation = new UserLocation();
+
+            DocumentReference userRef = mDb.collection(getString(R.string.collection_users)).document(FirebaseAuth.getInstance().getUid());
+            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                    if (task.isSuccessful()){
+                        User user = task.getResult().toObject(User.class);
+                        ((UserClient)getApplication()).setUser(user);
+                        getLastKnownLocation();
+                    }
+                }
+            });
+        }
+        else {
+            getLastKnownLocation();
+        }
+    }
+
+    public void saveUserLocation(){
+        if (userLocation != null){
+            DocumentReference locationReferance = mDb.collection(getString(R.string.collection_user_locations))
+                    .document(FirebaseAuth.getInstance().getUid());
+
+            locationReferance.set(userLocation).addOnCompleteListener(new OnCompleteListener<Void>() {
+                @Override
+                public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful()){
+                        Log.d(TAG, "onComplete: Lat: " + userLocation.getGeo_point().getLatitude() + " Long: " + userLocation.getGeo_point().getLongitude());
+                    }
+                }
+            });
+        }
+    }
+
     public void getLastKnownLocation() {
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -103,8 +145,13 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onComplete(@NonNull Task<Location> task) {
                 Location location = task.getResult();
+                Log.d(TAG, "onComplete: location: " + location);
                 GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
                 Log.d(TAG, "onComplete: Location: " + geoPoint.getLatitude() + ", " + geoPoint.getLongitude());
+
+                userLocation.setGeo_point(geoPoint);
+                userLocation.setTimestamp(null);
+                saveUserLocation();
             }
         });
     }
@@ -153,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements
                 == PackageManager.PERMISSION_GRANTED) {
             mLocationPermissionGranted = true;
             getChatrooms();
-            getLastKnownLocation();
+            getUserDetails();
         } else {
             ActivityCompat.requestPermissions(this,
                     new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
@@ -206,10 +253,10 @@ public class MainActivity extends AppCompatActivity implements
             case PERMISSIONS_REQUEST_ENABLE_GPS: {
                 if(mLocationPermissionGranted){
                     getChatrooms();
-                    getLastKnownLocation();
+                    getUserDetails();
                 }
                 else{
-                    getLocationPermission();
+                    getUserDetails();
                 }
             }
         }
@@ -356,7 +403,7 @@ public class MainActivity extends AppCompatActivity implements
         if (checkMapServices()){
             if (mLocationPermissionGranted){
                 getChatrooms();
-                getLastKnownLocation();
+                getUserDetails();
             }
             else {
                 getLocationPermission();
