@@ -1,12 +1,15 @@
 package com.codingwithmitch.googlemaps2018.models;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.ServerTimestamp;
 
 import java.util.Date;
 
 
-public class UserLocation {
+public class UserLocation implements Parcelable{
 
     public GeoPoint geo_point;
     public @ServerTimestamp Date timestamp;
@@ -53,5 +56,15 @@ public class UserLocation {
                 ", timestamp=" + timestamp +
                 ", user=" + user +
                 '}';
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+
     }
 }

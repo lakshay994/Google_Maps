@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import com.codingwithmitch.googlemaps2018.R;
 import com.codingwithmitch.googlemaps2018.adapters.UserRecyclerAdapter;
 import com.codingwithmitch.googlemaps2018.models.User;
+import com.codingwithmitch.googlemaps2018.models.UserLocation;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -39,6 +40,7 @@ public class UserListFragment extends Fragment implements OnMapReadyCallback {
     //vars
     private ArrayList<User> mUserList = new ArrayList<>();
     private UserRecyclerAdapter mUserRecyclerAdapter;
+    private ArrayList<UserLocation> userLocations = new ArrayList<>();
 
 
     public static UserListFragment newInstance() {
@@ -50,6 +52,7 @@ public class UserListFragment extends Fragment implements OnMapReadyCallback {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             mUserList = getArguments().getParcelableArrayList(getString(R.string.intent_user_list));
+            userLocations = getArguments().getParcelableArrayList(getString(R.string.intent_user_locations));
         }
     }
 
